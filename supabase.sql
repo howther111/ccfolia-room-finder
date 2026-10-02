@@ -1,4 +1,4 @@
--- CCFOLIA ROOM FINDER v2
+-- CCFOLIA ROOM FINDER v6
 -- Supabase SQL Editorで、このファイル全体を実行してください。
 
 create table if not exists public.rooms (
@@ -13,9 +13,6 @@ create table if not exists public.rooms (
   is_public boolean not null default true,
   is_approved boolean not null default true,
   deletion_token_hash text,
-  last_checked_at timestamptz,
-  last_check_status text not null default 'unchecked',
-  consecutive_not_found integer not null default 0,
 
   constraint rooms_title_length
     check (char_length(title) between 1 and 100),
@@ -41,22 +38,6 @@ create extension if not exists pgcrypto with schema extensions;
 -- 既存のv1テーブルから更新する場合にも対応します。
 alter table public.rooms
   add column if not exists deletion_token_hash text;
-
-alter table public.rooms
-  add column if not exists last_checked_at timestamptz;
-
-alter table public.rooms
-  add column if not exists last_check_status text not null default 'unchecked';
-
-alter table public.rooms
-  add column if not exists consecutive_not_found integer not null default 0;
-
-alter table public.rooms
-  drop constraint if exists rooms_consecutive_not_found_nonnegative;
-
-alter table public.rooms
-  add constraint rooms_consecutive_not_found_nonnegative
-  check (consecutive_not_found >= 0);
 
 create index if not exists rooms_system_idx
   on public.rooms(system);
@@ -146,6 +127,24 @@ $$;
 revoke all on function public.delete_room(text, text) from public;
 grant execute on function public.delete_room(text, text) to anon;
 grant execute on function public.delete_room(text, text) to authenticated;
+
+-- 登録から2400時間（100日）を超えたルームを物理削除する定期処理。
+-- Supabaseのpg_cronを15分間隔で実行します。
+create extension if not exists pg_cron with schema extensions;
+
+-- 同名の既存ジョブがあれば置き換えます。
+select cron.unschedule(jobid)
+from cron.job
+where jobname = 'delete-expired-ccfolia-rooms';
+
+select cron.schedule(
+  'delete-expired-ccfolia-rooms',
+  '*/15 * * * *',
+  $$
+    delete from public.rooms
+    where created_at <= now() - interval '2400 hours';
+  $$
+);
 
 -- 注意：
 -- v1では誰でも登録可能にするため、is_approved=true で登録されます。

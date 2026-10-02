@@ -1,71 +1,71 @@
-# CCFOLIA ROOM FINDER v5
+# CCFOLIA ROOM FINDER v6
 
-ココフォリアの公開ルームを検索・共有し、実際のブラウザでルームの存在を定期確認するTRPG向けWebサイトです。
-
-## v5で追加したもの
-
-- 公開済みルーム一覧
-- 登録時の削除キー発行
-- 削除キーによる本人登録ルームの削除
-- **GitHub Actions + Playwright + ChromiumによるCCFOLIA実ブラウザチェック**
-- **CCFOLIA画面の`h5`要素に「お探しのルームは見つかりませんでした」が表示された場合の削除候補化**
-- **2回連続で同じ「見つからない」状態を確認した場合の自動削除**
-- 通信エラー・タイムアウト・その他のチェック失敗では自動削除しない
-
-管理者承認・通報・Turnstile・管理画面は実装していません。
+ココフォリアの公開ルームを検索・共有するTRPG向けWebサイトです。
 
 ## 構成
 
-- GitHub Pages: 公開Webサイト
-- Supabase Database: ルーム情報
-- GitHub Actions: 定期チェック
-- Playwright + Chromium: CCFOLIAの実ブラウザ表示確認
+- GitHub Pages
+- HTML / CSS / JavaScript
+- Supabase Database
+- Supabase RLS
+- Supabase JavaScript SDK
 
-GitHub Actionsの` schedule`で定期実行でき、PlaywrightはGitHub Actions上でChromiumをインストールして実行できます。\n
-## 1. Supabase
+自前サーバーは必要ありません。
 
-既存のv4プロジェクトを使う場合、`supabase.sql`をSQL Editorで実行してください。
+## 主な機能
 
-追加される主なカラム:
+- ココフォリア公開ルームの登録
+- ルーム名
+- ココフォリアURL
+- TRPGシステム
+- タグ
+- 説明
+- キーワード検索
+- TRPGシステムによる絞り込み
+- 登録済みURLの重複防止
+- `https://ccfolia.com/rooms/...` 形式のURL検証
+- スマートフォン対応
+- 登録時に削除キーを発行
+- 削除キーによる本人登録ルームの削除
+- 公開済みルームの一覧表示
+- 公開済みルーム一覧の手動更新
 
-- `last_checked_at`
-- `last_check_status`
-- `consecutive_not_found`
+「推奨人数」「人数による絞り込み」はありません。
 
-`consecutive_not_found`は、CCFOLIA上で「見つからない」状態が連続して確認された回数です。
+---
 
-### 自動削除の判定
+# 1. Supabaseプロジェクトを作成
 
-標準設定では2回連続です。
+Supabaseで新しいプロジェクトを作成します。
 
-```text
-1回目: 「お探しのルームは見つかりませんでした」
-        ↓
-        削除候補として記録
+その後、SQL Editorを開き、`supabase.sql` の内容をすべて実行してください。
 
-2回目: 同じ文言を再確認
-        ↓
-        DBから削除
-```
+これにより `rooms` テーブルとRLSポリシーが作成されます。
 
-正常に表示された場合はカウントを0に戻します。
+# 2. Supabaseの接続情報を設定
 
-通信エラーやタイムアウトではカウントを増やしません。
+Supabaseのプロジェクト設定から、Project URLとPublishable Keyを確認します。
 
-## 2. Supabase接続情報
-
-`app.js`にはPublishable Keyだけを入れてください。
+`app.js` の先頭を変更してください。
 
 ```javascript
 const SUPABASE_URL = "https://YOUR_PROJECT_ID.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "YOUR_SUPABASE_PUBLISHABLE_KEY";
 ```
 
-**Supabase Service Role Keyは絶対に`app.js`へ入れないでください。**
+## 重要
 
-## 3. GitHubへアップロード
+ブラウザに置いてよいのはPublishable Keyです。
 
-リポジトリのルートに以下を置きます。
+以下のような秘密鍵は絶対に `app.js` に書かないでください。
+
+- service_role key
+- secret key
+- その他のサーバー専用秘密情報
+
+# 3. GitHubへアップロード
+
+このフォルダの以下のファイルをGitHubリポジトリのルートに置きます。
 
 ```text
 index.html
@@ -73,110 +73,135 @@ style.css
 app.js
 supabase.sql
 README.md
-package.json
-package-lock.json
-scripts/check-rooms.mjs
-.github/workflows/check-ccfolia-rooms.yml
 ```
 
-`package-lock.json`は、ローカルで次を実行して生成してください。
-
-```bash
-npm install
-```
-
-その後、生成された`package-lock.json`もGitHubへコミットします。
-
-## 4. GitHub Actions Secrets
+# 4. GitHub Pagesを有効化
 
 GitHubリポジトリで、
 
-Settings → Secrets and variables → Actions
-
-から以下をRepository secretとして登録します。
-
-### SUPABASE_URL
-
-SupabaseのProject URL。
-
-### SUPABASE_SERVICE_ROLE_KEY
-
-SupabaseのService Role Key。
-
-**このキーは絶対に公開リポジトリのファイルへ書かないでください。**
-
-GitHub ActionsのSecretとしてのみ設定します。
-
-## 5. GitHub Pages
-
-従来どおりGitHub Pagesを有効化してください。
-
-```text
 Settings
 → Pages
-→ Deploy from a branch
-→ main
-→ /(root)
-```
 
-`.github/workflows/`のファイルはWeb公開対象にはならず、GitHub Actionsが実行します。
+を開きます。
 
-## 6. 自動チェック
+Build and deployment の Source を GitHub Actions または Deploy from a branch に設定してください。
 
-標準では毎日、日本時間03:17に実行します。
+単純な静的サイトなので、最初は `main` ブランチのルートを公開する方法でも構いません。
 
-さらにGitHubのActions画面から`workflow_dispatch`で手動実行できます。
-
-GitHub Actionsのスケジュールはデフォルトブランチ上のワークフローを対象に実行されます。公開リポジトリでは、60日間活動がない場合にスケジュールが自動無効化される点にも注意してください。
-
-## 7. CCFOLIAの判定方法
-
-HTTPレスポンスだけでは判断せず、PlaywrightでChromiumを起動して実際のCCFOLIAページを開きます。
-
-ページのJavaScriptによる描画が完了するのを待ち、`h5`要素のテキストを取得します。
-
-以下の文言を含む`h5`が存在した場合を「ルームが見つからない」と判定します。
+公開されると、
 
 ```text
-お探しのルームは見つかりませんでした
+https://ユーザー名.github.io/リポジトリ名/
 ```
 
-その状態を2回連続で確認すると、対象レコードを`rooms`テーブルから削除します。
+のようなURLになります。
 
-## 8. 自動削除しないケース
+# 5. 公開済みルーム一覧
 
-以下では削除しません。
+v4では、検索とは別に「公開済みルーム一覧」セクションを追加しています。
 
-- CCFOLIAへの接続タイムアウト
-- DNS/ネットワークエラー
-- 500系などのサーバーエラー
-- Playwrightのエラー
-- `h5`の判定ができない場合
-- 正常にルームが表示される場合
+- `is_public = true` かつ `is_approved = true` のルームだけを表示
+- 登録日時の新しい順に最大100件を表示
+- 「一覧を更新」ボタンで最新状態を再取得
+- ルーム名、システム、タグ、説明、登録日、ココフォリアへのリンクを確認可能
 
-CCFOLIA側の一時障害で登録情報が消えることを避けるためです。
+この機能は既存のSupabase RLSによる公開条件をそのまま利用しており、管理者機能や承認機能は追加していません。
 
-## 9. 注意事項
+# 6. 動作確認
 
-CCFOLIAの画面構造や文言が将来変更された場合、このチェック方法が動作しなくなる可能性があります。
+公開ページを開き、
 
-特に以下が変更された場合は、`scripts/check-rooms.mjs`の修正が必要です。
+1. 「ルームを登録」でテストデータを登録
+2. 「公開ルーム」に表示されることを確認
+3. キーワード検索を確認
+4. TRPGシステム絞り込みを確認
+5. 同じURLを再登録して重複エラーになることを確認
+6. `example.com` などを入力してURL検証が拒否することを確認
 
-- 「お探しのルームは見つかりませんでした」の文言
-- `h5`要素の構造
-- ルームページのURL構造
-- JavaScriptによるページ描画方式
+# ルーム削除について
 
-また、1回のGitHub Actions実行では標準で最大100ルームを確認します。ルーム数が100件を超えた場合は、後続実行で残りを確認する設計に変更する必要があります。
+v2では、ルーム登録時にランダムな削除キーを発行します。
 
-## 10. 削除キー
+- 削除キーは登録成功時に一度だけ画面に表示されます。
+- 削除キーの平文はSupabaseには保存しません。
+- SupabaseにはSHA-256ハッシュのみ保存します。
+- 削除時は「ココフォリアURL＋削除キー」を入力します。
+- URLと削除キーが一致した場合だけ対象ルームを削除します。
+- ブラウザから匿名ユーザーに直接DELETE権限は与えず、Supabase RPC関数で検証して削除します。
 
-ルーム登録時に削除キーを発行します。
+**削除キーを紛失すると、通常の削除フォームからは削除できません。**
+また、v1から既に登録されていたルームには削除キーがないため、v2の削除フォームでは削除できません。必要に応じて管理者用の削除機能を追加してください。
 
-- 削除キーの平文はDBに保存しません
-- SHA-256ハッシュのみ保存します
-- URL＋削除キーが一致した場合のみ手動削除できます
+## v4でのSupabase設定
 
-## ライセンス
+新規プロジェクトの場合は `supabase.sql` を最初から実行してください。
+
+v4/v2のプロジェクトを更新する場合も、`supabase.sql` をSQL Editorで実行できます。`deletion_token_hash` 列、RLS登録ポリシー、削除用RPC関数が追加されます。
+
+# ルームの有効期限と自動削除
+
+登録されたルームの有効期限は、**登録時刻から100日間（2400時間）**です。
+
+Supabaseの `pg_cron` を使い、15分ごとに期限切れデータを確認します。
+`created_at` が現在時刻より2400時間以上前になったルームは、`public.rooms` テーブルから物理削除されます。
+
+100日を経過した直後から最大15分程度はデータが残る可能性があります。これは定期処理の実行間隔によるものです。
+
+既存のルームについても、登録時刻（`created_at`）を基準に同じルールが適用されます。
+
+## v6への更新
+
+既存のv4プロジェクトを更新する場合は、`supabase.sql` をSQL Editorで実行してください。
+このSQLには既存のテーブル・RLS・削除用RPCに加えて、期限切れルームを物理削除する `pg_cron` ジョブの設定が含まれています。
+
+GitHub Pages側の `index.html` / `style.css` / `app.js` は基本的にそのまま使用できます。
+
+**重要:** `pg_cron` が利用できない場合は、SQL実行時にエラーが表示されます。その場合はSupabaseプロジェクトで `pg_cron` が利用可能か確認してください。
+
+# CCFOLIA URL検証について
+
+v6ではブラウザ側とデータベース側の2箇所でURL形式を検証します。
+
+許可：
+
+```text
+https://ccfolia.com/rooms/xxxxxxxx
+```
+
+拒否：
+
+```text
+http://ccfolia.com/rooms/xxxxxxxx
+https://example.com/rooms/xxxxxxxx
+https://ccfolia.com/
+https://ccfolia.com/other/xxxxxxxx
+```
+
+ただし、v1のURL検証は「URLの形式とドメインが正しいか」の確認です。
+
+「そのルームが実際に存在するか」
+「現在も公開されているか」
+までは確認しません。
+
+この確認は次のバージョンでSupabase Edge Functions等を使って追加できます。
+
+# セキュリティについて
+
+v2でも「誰でも登録できる」仕様です。
+
+そのため一般公開すると、スパム登録される可能性があります。
+
+正式公開前には、例えば以下を追加することを推奨します。
+
+- Cloudflare Turnstile
+- 管理者承認
+- 通報機能
+- 削除申請
+- URLの定期チェック
+- レート制限
+- 登録者ごとの管理機能
+- 削除キーの再発行・管理者削除機能
+
+# ライセンス
 
 必要に応じて設定してください。
