@@ -1,0 +1,13 @@
+{
+  "name": "ccfolia-room-finder-cleaner",
+  "private": true,
+  "version": "5.0.0",
+  "type": "module",
+  "scripts": {
+    "check-rooms": "node scripts/check-rooms.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.58.0",
+    "playwright": "^1.55.0"
+  }
+}

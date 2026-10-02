@@ -13,6 +13,9 @@ create table if not exists public.rooms (
   is_public boolean not null default true,
   is_approved boolean not null default true,
   deletion_token_hash text,
+  last_checked_at timestamptz,
+  last_check_status text not null default 'unchecked',
+  consecutive_not_found integer not null default 0,
 
   constraint rooms_title_length
     check (char_length(title) between 1 and 100),
@@ -38,6 +41,22 @@ create extension if not exists pgcrypto with schema extensions;
 -- 既存のv1テーブルから更新する場合にも対応します。
 alter table public.rooms
   add column if not exists deletion_token_hash text;
+
+alter table public.rooms
+  add column if not exists last_checked_at timestamptz;
+
+alter table public.rooms
+  add column if not exists last_check_status text not null default 'unchecked';
+
+alter table public.rooms
+  add column if not exists consecutive_not_found integer not null default 0;
+
+alter table public.rooms
+  drop constraint if exists rooms_consecutive_not_found_nonnegative;
+
+alter table public.rooms
+  add constraint rooms_consecutive_not_found_nonnegative
+  check (consecutive_not_found >= 0);
 
 create index if not exists rooms_system_idx
   on public.rooms(system);
