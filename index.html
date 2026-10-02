@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="ココフォリアの公開ルームを検索・共有するTRPG向けサイト">
+  <title>CCFOLIA ROOM FINDER</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <p class="eyebrow">TRPG ROOM DIRECTORY</p>
+      <h1>CCFOLIA ROOM FINDER</h1>
+      <p class="lead">ココフォリアの公開ルームを検索・共有</p>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="panel search-panel" aria-labelledby="search-heading">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">SEARCH</p>
+          <h2 id="search-heading">公開ルームを検索</h2>
+        </div>
+        <span id="resultCount" class="result-count">0件</span>
+      </div>
+
+      <div class="search-grid">
+        <label class="field field-keyword">
+          <span>キーワード</span>
+          <input id="keyword" type="search" maxlength="100"
+                 placeholder="ルーム名・説明・タグ">
+        </label>
+
+        <label class="field">
+          <span>TRPGシステム</span>
+          <select id="system">
+            <option value="">すべて</option>
+            <option value="クトゥルフ神話TRPG">クトゥルフ神話TRPG</option>
+            <option value="ソード・ワールド2.5">ソード・ワールド2.5</option>
+            <option value="ダブルクロス">ダブルクロス</option>
+            <option value="シノビガミ">シノビガミ</option>
+            <option value="その他">その他</option>
+          </select>
+        </label>
+
+        <button id="searchButton" class="button primary" type="button">検索</button>
+      </div>
+    </section>
+
+    <section class="panel register-panel" aria-labelledby="register-heading">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">REGISTER</p>
+          <h2 id="register-heading">ルームを登録</h2>
+        </div>
+      </div>
+
+      <p class="note">
+        登録できるのは公開ココフォリアルームのURLです。
+        URLは <code>https://ccfolia.com/rooms/...</code> の形式で検証します。
+      </p>
+
+      <form id="roomForm" novalidate>
+        <div class="form-grid">
+          <label class="field field-wide">
+            <span>ルーム名 <b aria-hidden="true">*</b></span>
+            <input id="title" type="text" maxlength="100" required
+                   placeholder="例：初心者歓迎 CoC セッション">
+          </label>
+
+          <label class="field field-wide">
+            <span>ココフォリアURL <b aria-hidden="true">*</b></span>
+            <input id="roomUrl" type="url" maxlength="500" required
+                   placeholder="https://ccfolia.com/rooms/xxxxxxxx">
+            <small id="urlMessage" class="field-message" aria-live="polite"></small>
+          </label>
+
+          <label class="field">
+            <span>TRPGシステム <b aria-hidden="true">*</b></span>
+            <select id="registerSystem" required>
+              <option value="">選択してください</option>
+              <option value="クトゥルフ神話TRPG">クトゥルフ神話TRPG</option>
+              <option value="ソード・ワールド2.5">ソード・ワールド2.5</option>
+              <option value="ダブルクロス">ダブルクロス</option>
+              <option value="シノビガミ">シノビガミ</option>
+              <option value="その他">その他</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>タグ</span>
+            <input id="tags" type="text" maxlength="300"
+                   placeholder="初心者歓迎, ホラー, 戦闘あり">
+            <small>カンマ区切りで入力してください。</small>
+          </label>
+
+          <label class="field field-wide">
+            <span>説明</span>
+            <textarea id="description" maxlength="1000" rows="5"
+                      placeholder="ルームの内容や利用条件など"></textarea>
+          </label>
+        </div>
+
+        <div class="form-actions">
+          <button id="registerButton" class="button primary" type="submit">
+            ルームを登録
+          </button>
+          <p id="formMessage" class="form-message" aria-live="polite"></p>
+        </div>
+      </form>
+    </section>
+
+    <section class="results-section" aria-labelledby="results-heading">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">ROOMS</p>
+          <h2 id="results-heading">公開ルーム</h2>
+        </div>
+      </div>
+
+      <div id="loading" class="status">読み込み中……</div>
+      <div id="roomList" class="room-list"></div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>CCFOLIA ROOM FINDER</p>
+      <p class="muted">本サイトはココフォリア公式サイトではありません。</p>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="app.js"></script>
+</body>
+</html>
