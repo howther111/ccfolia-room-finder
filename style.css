@@ -3,18 +3,18 @@
 }
 
 :root {
-  color-scheme: dark;
-  --bg: #0d1016;
-  --surface: #151a23;
-  --surface-2: #1b212c;
-  --border: #303846;
-  --text: #f2f4f8;
-  --muted: #98a2b3;
-  --accent: #7187ff;
-  --accent-hover: #8799ff;
-  --success: #6ee7a8;
-  --danger: #ff7d7d;
-  --shadow: 0 12px 35px rgba(0, 0, 0, .22);
+  color-scheme: light;
+  --bg: #f5f7fb;
+  --surface: #ffffff;
+  --surface-2: #eef2f7;
+  --border: #d8dee8;
+  --text: #1f2937;
+  --muted: #667085;
+  --accent: #4f63d8;
+  --accent-hover: #4053c2;
+  --success: #18864b;
+  --danger: #c73737;
+  --shadow: 0 10px 28px rgba(31, 41, 55, .08);
 }
 
 html {
@@ -24,7 +24,7 @@ html {
 body {
   margin: 0;
   background:
-    radial-gradient(circle at 15% 0%, rgba(113, 135, 255, .10), transparent 32rem),
+    radial-gradient(circle at 15% 0%, rgba(79, 99, 216, .08), transparent 32rem),
     var(--bg);
   color: var(--text);
   font-family:
@@ -53,7 +53,7 @@ a {
 .site-header {
   padding: 72px 0 58px;
   border-bottom: 1px solid var(--border);
-  background: rgba(13, 16, 22, .82);
+  background: rgba(255, 255, 255, .92);
 }
 
 .site-header h1 {
@@ -84,7 +84,7 @@ main {
 .panel {
   margin-bottom: 28px;
   padding: 28px;
-  background: rgba(21, 26, 35, .94);
+  background: rgba(255, 255, 255, .96);
   border: 1px solid var(--border);
   border-radius: 16px;
   box-shadow: var(--shadow);
@@ -158,7 +158,7 @@ textarea {
   border-radius: 9px;
   outline: none;
   padding: 11px 13px;
-  background: #0d1118;
+  background: #ffffff;
   color: var(--text);
   transition: border-color .15s, box-shadow .15s;
 }
@@ -177,7 +177,7 @@ textarea:focus {
 
 input::placeholder,
 textarea::placeholder {
-  color: #687283;
+  color: #98a2b3;
 }
 
 .button {
@@ -218,8 +218,8 @@ textarea::placeholder {
 code {
   padding: 2px 5px;
   border-radius: 5px;
-  background: #0b0e13;
-  color: #d8def0;
+  background: #f4f6f9;
+  color: #344054;
 }
 
 .field-message {
@@ -294,14 +294,20 @@ code {
   padding: 4px 9px;
   border-radius: 999px;
   background: var(--surface-2);
-  color: #c9d1e1;
+  color: #475467;
   font-size: .78rem;
   white-space: nowrap;
 }
 
+.room-master {
+  margin: 7px 0 0;
+  color: var(--muted);
+  font-size: .88rem;
+}
+
 .room-description {
   margin: 13px 0;
-  color: #c4cad5;
+  color: #475467;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
@@ -316,8 +322,8 @@ code {
 .tag {
   padding: 3px 9px;
   border-radius: 999px;
-  background: #222938;
-  color: #bfc8d8;
+  background: #eef2f7;
+  color: #475467;
   font-size: .78rem;
 }
 
@@ -368,7 +374,7 @@ code {
 }
 
 .muted {
-  color: #626b7a;
+  color: #667085;
 }
 
 @media (max-width: 760px) {
@@ -432,7 +438,7 @@ code {
   padding: 16px;
   border: 1px solid #b08a2e;
   border-radius: 10px;
-  background: rgba(176, 138, 46, 0.10);
+  background: rgba(176, 138, 46, 0.08);
 }
 
 .deletion-token-box strong {
@@ -449,6 +455,6 @@ code {
   padding: 12px;
   overflow-wrap: anywhere;
   font-size: 0.95rem;
-  background: rgba(0, 0, 0, 0.25);
+  background: #f4f6f9;
   border-radius: 6px;
 }

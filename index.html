@@ -10,7 +10,6 @@
 <body>
   <header class="site-header">
     <div class="container">
-      <p class="eyebrow">TRPG ROOM DIRECTORY</p>
       <h1>CCFOLIA ROOM FINDER</h1>
       <p class="lead">ココフォリアの公開ルームを検索・共有</p>
     </div>
@@ -30,7 +29,7 @@
         <label class="field field-keyword">
           <span>キーワード</span>
           <input id="keyword" type="search" maxlength="100"
-                 placeholder="ルーム名・説明・タグ">
+                 placeholder="ルーム名・ルームマスター・説明・タグ">
         </label>
 
         <label class="field">
@@ -70,6 +69,12 @@
                    placeholder="例：初心者歓迎 CoC セッション">
           </label>
 
+          <label class="field">
+            <span>ルームマスター <b aria-hidden="true">*</b></span>
+            <input id="roomMaster" type="text" maxlength="100" required
+                   placeholder="例：山田太郎">
+          </label>
+
           <label class="field field-wide">
             <span>ココフォリアURL <b aria-hidden="true">*</b></span>
             <input id="roomUrl" type="url" maxlength="500" required
@@ -79,14 +84,8 @@
 
           <label class="field">
             <span>TRPGシステム <b aria-hidden="true">*</b></span>
-            <select id="registerSystem" required>
-              <option value="">選択してください</option>
-              <option value="クトゥルフ神話TRPG">クトゥルフ神話TRPG</option>
-              <option value="ソード・ワールド2.5">ソード・ワールド2.5</option>
-              <option value="ダブルクロス">ダブルクロス</option>
-              <option value="シノビガミ">シノビガミ</option>
-              <option value="その他">その他</option>
-            </select>
+            <input id="registerSystem" type="text" maxlength="100" required
+                   placeholder="例：クトゥルフ神話TRPG">
           </label>
 
           <label class="field">

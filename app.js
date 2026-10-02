@@ -197,6 +197,7 @@ function renderRooms(rooms) {
           <h3>${escapeHtml(room.title)}</h3>
           <span class="system-badge">${escapeHtml(room.system)}</span>
         </div>
+        <p class="room-master">ルームマスター：${escapeHtml(room.room_master)}</p>
 
         ${
           room.description
@@ -247,6 +248,7 @@ function renderPublicRooms(rooms) {
           <h3>${escapeHtml(room.title)}</h3>
           <span class="system-badge">${escapeHtml(room.system)}</span>
         </div>
+        <p class="room-master">ルームマスター：${escapeHtml(room.room_master)}</p>
         ${room.description ? `<p class="room-description">${escapeHtml(room.description)}</p>` : ""}
         ${tagHtml ? `<div class="tags">${tagHtml}</div>` : ""}
         <div class="room-footer">
@@ -265,7 +267,7 @@ async function loadPublicRooms() {
 
   const { data, error } = await supabaseClient
     .from("rooms")
-    .select("id,title,room_url,system,tags,description,created_at")
+    .select("id,title,room_url,system,room_master,tags,description,created_at")
     .eq("is_public", true)
     .eq("is_approved", true)
     .order("created_at", { ascending: false })
@@ -294,7 +296,7 @@ async function loadRooms() {
 
   let query = supabaseClient
     .from("rooms")
-    .select("id,title,room_url,system,tags,description,created_at")
+    .select("id,title,room_url,system,room_master,tags,description,created_at")
     .eq("is_public", true)
     .eq("is_approved", true)
     .order("created_at", { ascending: false })
@@ -321,7 +323,7 @@ async function loadRooms() {
 
     if (safeKeyword.trim()) {
       query = query.or(
-        `title.ilike.%${safeKeyword}%,description.ilike.%${safeKeyword}%`
+        `title.ilike.%${safeKeyword}%,room_master.ilike.%${safeKeyword}%,description.ilike.%${safeKeyword}%`
       );
     }
   }
@@ -353,6 +355,7 @@ async function loadRooms() {
 
     rooms = rooms.filter((room) => {
       const title = String(room.title ?? "").toLocaleLowerCase();
+      const roomMaster = String(room.room_master ?? "").toLocaleLowerCase();
       const description = String(room.description ?? "").toLocaleLowerCase();
       const tags = Array.isArray(room.tags)
         ? room.tags.join(" ").toLocaleLowerCase()
@@ -360,6 +363,7 @@ async function loadRooms() {
 
       return (
         title.includes(lower) ||
+        roomMaster.includes(lower) ||
         description.includes(lower) ||
         tags.includes(lower)
       );
@@ -378,8 +382,9 @@ $("roomForm").addEventListener("submit", async (event) => {
   const system = $("registerSystem").value;
   const tags = parseTags($("tags").value);
   const description = $("description").value.trim();
+  const roomMaster = $("roomMaster").value.trim();
 
-  if (!title || !system) {
+  if (!title || !roomMaster || !system) {
     setFormMessage("必須項目を入力してください。", "error");
     return;
   }
@@ -404,6 +409,7 @@ $("roomForm").addEventListener("submit", async (event) => {
     .insert({
       title,
       room_url: urlResult.canonicalUrl,
+      room_master: roomMaster,
       system,
       tags,
       description,
