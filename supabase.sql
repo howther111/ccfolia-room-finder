@@ -1,4 +1,4 @@
--- CCFOLIA ROOM FINDER v1
+-- CCFOLIA ROOM FINDER v2
 -- Supabase SQL Editorで、このファイル全体を実行してください。
 
 create table if not exists public.rooms (
@@ -12,6 +12,7 @@ create table if not exists public.rooms (
   updated_at timestamptz not null default now(),
   is_public boolean not null default true,
   is_approved boolean not null default true,
+  deletion_token_hash text,
 
   constraint rooms_title_length
     check (char_length(title) between 1 and 100),
@@ -30,6 +31,13 @@ create table if not exists public.rooms (
   constraint rooms_system_length
     check (char_length(system) between 1 and 100)
 );
+
+-- 削除キーのハッシュ化に使用します。
+create extension if not exists pgcrypto with schema extensions;
+
+-- 既存のv1テーブルから更新する場合にも対応します。
+alter table public.rooms
+  add column if not exists deletion_token_hash text;
 
 create index if not exists rooms_system_idx
   on public.rooms(system);
@@ -65,6 +73,60 @@ with check (
   is_public = true
   and is_approved = true
 );
+
+-- 登録時には削除キーのハッシュを必須にします。
+-- 平文の削除キーはデータベースには保存しません。
+drop policy if exists "Anyone can submit rooms with deletion key"
+  on public.rooms;
+
+create policy "Anyone can submit rooms with deletion key"
+on public.rooms
+for insert
+to anon
+with check (
+  is_public = true
+  and is_approved = true
+  and deletion_token_hash is not null
+  and char_length(deletion_token_hash) = 64
+);
+
+-- 旧ポリシーは上の新ポリシーと重複するため削除します。
+drop policy if exists "Anyone can submit public rooms"
+  on public.rooms;
+
+-- 削除キーを検証して、該当ルームだけを削除します。
+-- SECURITY DEFINER により、anonユーザーへテーブル全体のDELETE権限を与えずに実行できます。
+create or replace function public.delete_room(
+  p_room_url text,
+  p_deletion_token text
+)
+returns boolean
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  deleted_count integer;
+begin
+  if p_room_url is null or p_deletion_token is null then
+    return false;
+  end if;
+
+  delete from public.rooms
+  where room_url = p_room_url
+    and deletion_token_hash = encode(
+      extensions.digest(convert_to(p_deletion_token, 'UTF8'), 'sha256'),
+      'hex'
+    );
+
+  get diagnostics deleted_count = row_count;
+  return deleted_count = 1;
+end;
+$$;
+
+revoke all on function public.delete_room(text, text) from public;
+grant execute on function public.delete_room(text, text) to anon;
+grant execute on function public.delete_room(text, text) to authenticated;
 
 -- 注意：
 -- v1では誰でも登録可能にするため、is_approved=true で登録されます。

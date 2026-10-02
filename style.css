@@ -412,3 +412,43 @@ code {
     align-self: flex-start;
   }
 }
+
+/* v2: deletion UI */
+.button.danger {
+  background: #9f2f2f;
+  color: #fff;
+}
+
+.button.danger:hover:not(:disabled) {
+  background: #7f2424;
+}
+
+.delete-panel {
+  margin-top: 24px;
+}
+
+.deletion-token-box {
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid #b08a2e;
+  border-radius: 10px;
+  background: rgba(176, 138, 46, 0.10);
+}
+
+.deletion-token-box strong {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.deletion-token-box p {
+  margin: 0 0 10px;
+}
+
+.deletion-token-box code {
+  display: block;
+  padding: 12px;
+  overflow-wrap: anywhere;
+  font-size: 0.95rem;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 6px;
+}

@@ -112,6 +112,55 @@
       </form>
     </section>
 
+    <section class="panel delete-panel" aria-labelledby="delete-heading">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">DELETE</p>
+          <h2 id="delete-heading">登録したルームを削除</h2>
+        </div>
+      </div>
+
+      <p class="note">
+        登録時に発行された削除キーが必要です。削除キーは登録完了時に一度だけ表示されます。
+      </p>
+
+      <form id="deleteForm" novalidate>
+        <div class="form-grid">
+          <label class="field field-wide">
+            <span>ココフォリアURL <b aria-hidden="true">*</b></span>
+            <input id="deleteRoomUrl" type="url" maxlength="500" required
+                   placeholder="https://ccfolia.com/rooms/xxxxxxxx">
+          </label>
+
+          <label class="field field-wide">
+            <span>削除キー <b aria-hidden="true">*</b></span>
+            <input id="deletionToken" type="password" maxlength="200" required
+                   autocomplete="off" placeholder="登録時に表示された削除キー">
+          </label>
+        </div>
+
+        <div class="form-actions">
+          <button id="deleteButton" class="button danger" type="submit">
+            ルームを削除
+          </button>
+          <p id="deleteMessage" class="form-message" aria-live="polite"></p>
+        </div>
+      </form>
+    </section>
+
+    <section class="panel public-list-panel" aria-labelledby="public-list-heading">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">PUBLIC ROOMS</p>
+          <h2 id="public-list-heading">公開済みルーム一覧</h2>
+        </div>
+        <button id="refreshPublicRoomsButton" class="button secondary" type="button">一覧を更新</button>
+      </div>
+      <p class="note">現在公開されているルームを新しい順に確認できます。検索条件とは別に、公開中のルーム全体を表示します。</p>
+      <div id="publicRoomLoading" class="status">読み込み中……</div>
+      <div id="publicRoomList" class="room-list"></div>
+    </section>
+
     <section class="results-section" aria-labelledby="results-heading">
       <div class="section-heading">
         <div>

@@ -16,6 +16,20 @@ const supabaseClient = supabase.createClient(
 
 const $ = (id) => document.getElementById(id);
 
+function generateDeletionToken() {
+  const bytes = new Uint8Array(24);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+async function sha256Hex(value) {
+  const data = new TextEncoder().encode(value);
+  const hash = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(hash), (byte) =>
+    byte.toString(16).padStart(2, "0")
+  ).join("");
+}
+
 function escapeHtml(value) {
   return String(value ?? "")
     .replaceAll("&", "&amp;")
@@ -116,6 +130,24 @@ function setFormMessage(message, type = "") {
   $("formMessage").className = `form-message ${type}`.trim();
 }
 
+function setDeleteMessage(message, type = "") {
+  $("deleteMessage").textContent = message;
+  $("deleteMessage").className = `form-message ${type}`.trim();
+}
+
+function showDeletionToken(token) {
+  document.querySelectorAll(".deletion-token-box").forEach((element) => element.remove());
+
+  const box = document.createElement("div");
+  box.className = "deletion-token-box";
+  box.innerHTML = `
+    <strong>削除キーを保存してください</strong>
+    <p>このキーはあとから再表示できません。ルームを削除するときに必要です。</p>
+    <code>${escapeHtml(token)}</code>
+  `;
+  $("formMessage").insertAdjacentElement("afterend", box);
+}
+
 function parseTags(value) {
   return [...new Set(
     value
@@ -195,6 +227,61 @@ function renderRooms(rooms) {
       </article>
     `;
   }).join("");
+}
+
+function renderPublicRooms(rooms) {
+  if (!rooms.length) {
+    $("publicRoomList").innerHTML = `
+      <div class="empty">現在公開されているルームはありません。</div>
+    `;
+    return;
+  }
+
+  $("publicRoomList").innerHTML = rooms.map((room) => {
+    const tags = Array.isArray(room.tags) ? room.tags : [];
+    const tagHtml = tags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join("");
+
+    return `
+      <article class="room-card">
+        <div class="room-card-header">
+          <h3>${escapeHtml(room.title)}</h3>
+          <span class="system-badge">${escapeHtml(room.system)}</span>
+        </div>
+        ${room.description ? `<p class="room-description">${escapeHtml(room.description)}</p>` : ""}
+        ${tagHtml ? `<div class="tags">${tagHtml}</div>` : ""}
+        <div class="room-footer">
+          <span class="room-date">登録：${escapeHtml(formatDate(room.created_at))}</span>
+          <a class="open-room" href="${escapeHtml(room.room_url)}" target="_blank" rel="noopener noreferrer">ココフォリアを開く</a>
+        </div>
+      </article>
+    `;
+  }).join("");
+}
+
+async function loadPublicRooms() {
+  $("publicRoomLoading").hidden = false;
+  $("publicRoomLoading").textContent = "読み込み中……";
+  $("publicRoomList").innerHTML = "";
+
+  const { data, error } = await supabaseClient
+    .from("rooms")
+    .select("id,title,room_url,system,tags,description,created_at")
+    .eq("is_public", true)
+    .eq("is_approved", true)
+    .order("created_at", { ascending: false })
+    .limit(100);
+
+  $("publicRoomLoading").hidden = true;
+
+  if (error) {
+    console.error(error);
+    $("publicRoomList").innerHTML = `
+      <div class="empty">公開ルーム一覧を取得できませんでした。Supabaseの設定とRLSポリシーを確認してください。</div>
+    `;
+    return;
+  }
+
+  renderPublicRooms(data ?? []);
 }
 
 async function loadRooms() {
@@ -309,6 +396,9 @@ $("roomForm").addEventListener("submit", async (event) => {
   button.disabled = true;
   button.textContent = "登録中……";
 
+  const deletionToken = generateDeletionToken();
+  const deletionTokenHash = await sha256Hex(deletionToken);
+
   const { error } = await supabaseClient
     .from("rooms")
     .insert({
@@ -317,6 +407,7 @@ $("roomForm").addEventListener("submit", async (event) => {
       system,
       tags,
       description,
+      deletion_token_hash: deletionTokenHash,
       is_public: true,
       is_approved: true
     });
@@ -341,8 +432,58 @@ $("roomForm").addEventListener("submit", async (event) => {
   setFormMessage("ルームを登録しました。", "success");
   $("roomForm").reset();
   setUrlMessage("");
+  showDeletionToken(deletionToken);
 
   await loadRooms();
+  await loadPublicRooms();
+});
+
+$("deleteForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  setDeleteMessage("");
+
+  const rawUrl = $("deleteRoomUrl").value.trim();
+  const deletionToken = $("deletionToken").value.trim();
+
+  const urlResult = validateCcfoliaUrl(rawUrl);
+
+  if (!urlResult.valid) {
+    setDeleteMessage(urlResult.message, "error");
+    return;
+  }
+
+  if (!deletionToken) {
+    setDeleteMessage("削除キーを入力してください。", "error");
+    return;
+  }
+
+  const button = $("deleteButton");
+  button.disabled = true;
+  button.textContent = "削除中……";
+
+  const { data, error } = await supabaseClient.rpc("delete_room", {
+    p_room_url: urlResult.canonicalUrl,
+    p_deletion_token: deletionToken
+  });
+
+  button.disabled = false;
+  button.textContent = "ルームを削除";
+
+  if (error) {
+    console.error(error);
+    setDeleteMessage("削除に失敗しました。Supabaseの関数と権限設定を確認してください。", "error");
+    return;
+  }
+
+  if (!data) {
+    setDeleteMessage("削除キーまたはココフォリアURLが一致しません。", "error");
+    return;
+  }
+
+  setDeleteMessage("ルームを削除しました。", "success");
+  $("deleteForm").reset();
+  await loadRooms();
+  await loadPublicRooms();
 });
 
 $("searchButton").addEventListener("click", loadRooms);
@@ -355,5 +496,7 @@ $("keyword").addEventListener("keydown", (event) => {
 });
 
 $("system").addEventListener("change", loadRooms);
+$("refreshPublicRoomsButton").addEventListener("click", loadPublicRooms);
 
 loadRooms();
+loadPublicRooms();
