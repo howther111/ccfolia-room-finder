@@ -1,5 +1,5 @@
 /*
- * CCFOLIA ROOM FINDER - v14
+ * CCFOLIA ROOM FINDER - v15
  *
  * IMPORTANT:
  * 1. Replace SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY below.
@@ -399,7 +399,6 @@ $("roomForm").addEventListener("submit", async (event) => {
   showDeletionToken(deletionToken);
 
   await loadRooms();
-  await loadPublicRooms();
 });
 
 $("deleteForm").addEventListener("submit", async (event) => {
@@ -447,7 +446,6 @@ $("deleteForm").addEventListener("submit", async (event) => {
   setDeleteMessage("ルームを削除しました。", "success");
   $("deleteForm").reset();
   await loadRooms();
-  await loadPublicRooms();
 });
 
 $("searchButton").addEventListener("click", loadRooms);
@@ -465,6 +463,5 @@ $("system").addEventListener("keydown", (event) => {
     loadRooms();
   }
 });
-$("refreshPublicRoomsButton").addEventListener("click", loadPublicRooms);
 
 loadRooms();
