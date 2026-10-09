@@ -34,14 +34,8 @@
 
         <label class="field">
           <span>TRPGシステム</span>
-          <select id="system">
-            <option value="">すべて</option>
-            <option value="クトゥルフ神話TRPG">クトゥルフ神話TRPG</option>
-            <option value="ソード・ワールド2.5">ソード・ワールド2.5</option>
-            <option value="ダブルクロス">ダブルクロス</option>
-            <option value="シノビガミ">シノビガミ</option>
-            <option value="その他">その他</option>
-          </select>
+          <input id="system" type="search" maxlength="100"
+                 placeholder="例：クトゥルフ神話TRPG（部分一致）">
         </label>
 
         <button id="searchButton" class="button primary" type="button">検索</button>

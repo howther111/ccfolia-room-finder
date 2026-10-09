@@ -303,7 +303,12 @@ async function loadRooms() {
     .limit(100);
 
   if (system) {
-    query = query.eq("system", system);
+    // システム名はテキストボックス入力なので部分一致で検索する。
+    // PostgRESTのワイルドカードとして解釈される文字は取り除く。
+    const safeSystem = system.replaceAll("%", "").replaceAll("_", "").trim();
+    if (safeSystem) {
+      query = query.ilike("system", `%${safeSystem}%`);
+    }
   }
 
   /*
@@ -501,7 +506,12 @@ $("keyword").addEventListener("keydown", (event) => {
   }
 });
 
-$("system").addEventListener("change", loadRooms);
+$("system").addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    loadRooms();
+  }
+});
 $("refreshPublicRoomsButton").addEventListener("click", loadPublicRooms);
 
 loadRooms();
