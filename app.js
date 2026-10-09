@@ -1,5 +1,5 @@
 /*
- * CCFOLIA ROOM FINDER - v1
+ * CCFOLIA ROOM FINDER - v13
  *
  * IMPORTANT:
  * 1. Replace SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY below.
@@ -260,18 +260,45 @@ function renderPublicRooms(rooms) {
   }).join("");
 }
 
+// Supabaseの1回あたりの取得件数上限を超えても全件取得できるよう、ページングする。
+async function fetchAllRows(query, pageSize = 500) {
+  const allRows = [];
+  let offset = 0;
+
+  while (true) {
+    const { data, error } = await query.range(offset, offset + pageSize - 1);
+
+    if (error) {
+      return { data: null, error };
+    }
+
+    const rows = data ?? [];
+    allRows.push(...rows);
+
+    if (rows.length < pageSize) {
+      break;
+    }
+
+    offset += rows.length;
+  }
+
+  return { data: allRows, error: null };
+}
+
 async function loadPublicRooms() {
   $("publicRoomLoading").hidden = false;
   $("publicRoomLoading").textContent = "読み込み中……";
   $("publicRoomList").innerHTML = "";
 
-  const { data, error } = await supabaseClient
+  const query = supabaseClient
     .from("rooms")
     .select("id,title,room_url,system,room_master,tags,description,created_at")
     .eq("is_public", true)
     .eq("is_approved", true)
     .order("created_at", { ascending: false })
-    .limit(100);
+    .order("id", { ascending: true });
+
+  const { data, error } = await fetchAllRows(query);
 
   $("publicRoomLoading").hidden = true;
 
@@ -300,7 +327,7 @@ async function loadRooms() {
     .eq("is_public", true)
     .eq("is_approved", true)
     .order("created_at", { ascending: false })
-    .limit(100);
+    .order("id", { ascending: true });
 
   if (system) {
     // システム名はテキストボックス入力なので部分一致で検索する。
@@ -333,7 +360,7 @@ async function loadRooms() {
     }
   }
 
-  const { data, error } = await query;
+  const { data, error } = await fetchAllRows(query);
 
   $("loading").hidden = true;
 
