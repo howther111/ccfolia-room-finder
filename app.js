@@ -1,5 +1,5 @@
 /*
- * CCFOLIA ROOM FINDER - v13
+ * CCFOLIA ROOM FINDER - v14
  *
  * IMPORTANT:
  * 1. Replace SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY below.
@@ -230,87 +230,23 @@ function renderRooms(rooms) {
   }).join("");
 }
 
-function renderPublicRooms(rooms) {
-  if (!rooms.length) {
-    $("publicRoomList").innerHTML = `
-      <div class="empty">現在公開されているルームはありません。</div>
-    `;
-    return;
-  }
-
-  $("publicRoomList").innerHTML = rooms.map((room) => {
-    const tags = Array.isArray(room.tags) ? room.tags : [];
-    const tagHtml = tags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join("");
-
-    return `
-      <article class="room-card">
-        <div class="room-card-header">
-          <h3>${escapeHtml(room.title)}</h3>
-          <span class="system-badge">${escapeHtml(room.system)}</span>
-        </div>
-        <p class="room-master">ルームマスター：${escapeHtml(room.room_master)}</p>
-        ${room.description ? `<p class="room-description">${escapeHtml(room.description)}</p>` : ""}
-        ${tagHtml ? `<div class="tags">${tagHtml}</div>` : ""}
-        <div class="room-footer">
-          <span class="room-date">登録：${escapeHtml(formatDate(room.created_at))}</span>
-          <a class="open-room" href="${escapeHtml(room.room_url)}" target="_blank" rel="noopener noreferrer">ココフォリアを開く</a>
-        </div>
-      </article>
-    `;
-  }).join("");
-}
-
-// Supabaseの1回あたりの取得件数上限を超えても全件取得できるよう、ページングする。
-async function fetchAllRows(query, pageSize = 500) {
+// Supabaseの1回あたりの取得件数上限を超えても、ページごとに新しいクエリを作って全件取得する。
+async function fetchAllRows(buildQuery, pageSize = 500) {
   const allRows = [];
   let offset = 0;
 
   while (true) {
-    const { data, error } = await query.range(offset, offset + pageSize - 1);
-
-    if (error) {
-      return { data: null, error };
-    }
+    // 実行済みクエリのrange状態を再利用せず、毎回新しいクエリを作成する。
+    const query = buildQuery().range(offset, offset + pageSize - 1);
+    const { data, error } = await query;
+    if (error) return { data: null, error };
 
     const rows = data ?? [];
     allRows.push(...rows);
-
-    if (rows.length < pageSize) {
-      break;
-    }
-
+    if (rows.length < pageSize) break;
     offset += rows.length;
   }
-
   return { data: allRows, error: null };
-}
-
-async function loadPublicRooms() {
-  $("publicRoomLoading").hidden = false;
-  $("publicRoomLoading").textContent = "読み込み中……";
-  $("publicRoomList").innerHTML = "";
-
-  const query = supabaseClient
-    .from("rooms")
-    .select("id,title,room_url,system,room_master,tags,description,created_at")
-    .eq("is_public", true)
-    .eq("is_approved", true)
-    .order("created_at", { ascending: false })
-    .order("id", { ascending: true });
-
-  const { data, error } = await fetchAllRows(query);
-
-  $("publicRoomLoading").hidden = true;
-
-  if (error) {
-    console.error(error);
-    $("publicRoomList").innerHTML = `
-      <div class="empty">公開ルーム一覧を取得できませんでした。Supabaseの設定とRLSポリシーを確認してください。</div>
-    `;
-    return;
-  }
-
-  renderPublicRooms(data ?? []);
 }
 
 async function loadRooms() {
@@ -321,46 +257,36 @@ async function loadRooms() {
   const keyword = $("keyword").value.trim();
   const system = $("system").value;
 
-  let query = supabaseClient
-    .from("rooms")
-    .select("id,title,room_url,system,room_master,tags,description,created_at")
-    .eq("is_public", true)
-    .eq("is_approved", true)
-    .order("created_at", { ascending: false })
-    .order("id", { ascending: true });
+  // 初期表示では検索欄が空なので、公開・承認済みルームを検索条件なしで全件取得する。
+  // ページごとに同じ条件で新しいクエリを作るため、取得上限を超えても継続できる。
+  const buildQuery = () => {
+    let query = supabaseClient
+      .from("rooms")
+      .select("id,title,room_url,system,room_master,tags,description,created_at")
+      .eq("is_public", true)
+      .eq("is_approved", true)
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: true });
 
-  if (system) {
-    // システム名はテキストボックス入力なので部分一致で検索する。
-    // PostgRESTのワイルドカードとして解釈される文字は取り除く。
-    const safeSystem = system.replaceAll("%", "").replaceAll("_", "").trim();
-    if (safeSystem) {
-      query = query.ilike("system", `%${safeSystem}%`);
+    if (system.trim()) {
+      const safeSystem = system.replaceAll("%", "").replaceAll("_", "").trim();
+      if (safeSystem) query = query.ilike("system", `%${safeSystem}%`);
     }
-  }
 
-  /*
-   * Keyword search:
-   * title / description / tags を検索対象にする。
-   *
-   * Supabase/PostgREST のフィルタ値にカンマや括弧等を含めると
-   * 構文上の問題が起こり得るため、まず title/description を検索し、
-   * タグ検索は取得後に補助的に行う。
-   */
-  if (keyword) {
-    const safeKeyword = keyword
-      .replaceAll("%", "")
-      .replaceAll(",", " ")
-      .replaceAll("(", " ")
-      .replaceAll(")", " ");
-
-    if (safeKeyword.trim()) {
-      query = query.or(
-        `title.ilike.%${safeKeyword}%,room_master.ilike.%${safeKeyword}%,description.ilike.%${safeKeyword}%`
-      );
+    // キーワードはルーム名・マスター・説明をDB検索し、タグ一致は取得後に追加する。
+    if (keyword) {
+      const safeKeyword = keyword.replaceAll("%", "").replaceAll(",", " ")
+        .replaceAll("(", " ").replaceAll(")", " ").trim();
+      if (safeKeyword) {
+        query = query.or(
+          `title.ilike.%${safeKeyword}%,room_master.ilike.%${safeKeyword}%,description.ilike.%${safeKeyword}%`
+        );
+      }
     }
-  }
+    return query;
+  };
 
-  const { data, error } = await fetchAllRows(query);
+  const { data, error } = await fetchAllRows(buildQuery);
 
   $("loading").hidden = true;
 
@@ -542,4 +468,3 @@ $("system").addEventListener("keydown", (event) => {
 $("refreshPublicRoomsButton").addEventListener("click", loadPublicRooms);
 
 loadRooms();
-loadPublicRooms();
